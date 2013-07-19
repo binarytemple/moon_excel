@@ -64,9 +64,9 @@ class SpreadsheetTest extends Specification with Mockito {
   }
 
   "print the spreadsheet" in new ComplexScope {
-    s.print()(0) must_== "|A         |B         |C         |D         |E         |F         |G         |H         |"
-    s.print()(1) must_== "|1.0       |2.0       |          |          |          |          |          |          |          |          |"
-    s.print()(2) must_== "|3.0       |4.0       |          |          |          |          |          |          |          |          |"
+    s.print()(0) must_== "     |A         |B         |C         |D         |E         |F         |G         |H         |"
+    s.print()(1) must_== "1    |1.0       |2.0       |          |          |          |          |          |          |          |          |"
+    s.print()(2) must_== "2    |3.0       |4.0       |          |          |          |          |          |          |          |          |"
   }
 
 

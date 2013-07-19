@@ -1,19 +1,12 @@
 package moon
 
 import org.parboiled.scala._
-import moon.QueryTermParser.Op
+import moon.QueryTermParser.{Formula, Op}
+import moon.Spreadsheet.CellRange
 
 object QueryTermParser {
 
-  def main(args: Array[String]) {
-    QueryTermParser.parse( """=SUM(A1:B3)""").toString()
-    QueryTermParser.parse( """=MAX(A1:B3)""").toString()
-    QueryTermParser.parse( """=MIN(A1:B3)""").toString()
-    QueryTermParser.parse( """=COUNT(A1:B3)""").toString()
-  }
-
-
-  class Formula(v: Any) {
+  case class Formula(op: Op.Value, cr: CellRange) {
     def evaluate(m: Model) = ???
   }
 
@@ -46,33 +39,12 @@ object QueryTermParser {
     val qtp = new QueryTermParser {
       override val buildParseTree = true
     }
-    val run = RecoveringParseRunner(qtp.Formula, 1000l).run(input)
-    println("RESULT:" + run.result)
-
-
-    val parseTreePrintOut = org.parboiled.support.ParseTreeUtils.printNodeTree(run)
-    println("TREE:" + parseTreePrintOut)
-
-    //    run.result match {
-    //      case Some(astRoot) => astRoot.toRight(Left(new ParsingException(s"Invalid JSON source: $input")))
-    //        .asInstanceOf[Formula]
-    //      case None => throw new ParsingException("Invalid JSON source:\n" + ErrorUtils.printParseErrors(run))
-    //    }
-    new Formula()
+    val run = RecoveringParseRunner(qtp.FormulaExtractor, 1000l).run(input)
+//    println("RESULT:" + run.result)
+//    val parseTreePrintOut = org.parboiled.support.ParseTreeUtils.printNodeTree(run)
+//    println("TREE:" + parseTreePrintOut)
+    run.result.get
   }
-
-  //  def toString(in: QRES) = {
-  //    in match {
-  //      case Left(a) => throw new UnsupportedOperationException("Can't stringify", a)
-  //      case Right(b) => {
-  //        val q = b._1.toList.map(x => x._1 + ":" + x._2).mkString(" ")
-  //        b._2 match {
-  //          case Some(x) => q + "  " + x
-  //          case None => q
-  //        }
-  //      }
-  //    }
-  //  }
 }
 
 class QueryTermParser extends Parser {
@@ -99,8 +71,8 @@ class QueryTermParser extends Parser {
     Term ~ ":" ~ Term
   }
 
-  def Formula = rule {
+  def FormulaExtractor = rule {
     "=" ~ Operation ~ "(" ~ Pair ~ ")" ~ EOI
-  } ~~> ( (a:Op.Value,b:Int,c:Int,d:Int,e:Int) => s" $a $b $c $d $e")
+  } ~~> ((a: Op.Value, b: Int, c: Int, d: Int, e: Int) => Formula(a, CellRange((b, c - 1), (d, e - 1))))
 
 }

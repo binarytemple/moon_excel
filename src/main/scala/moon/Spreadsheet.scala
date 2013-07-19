@@ -72,7 +72,7 @@ class Spreadsheet(implicit var m: Model = new Model) {
 
     val headers = m.data.zip(Range(0,d.length)).map(
       ci => (ci._2 + I2c).toChar.formatted("%-10s")
-    ).mkString("|","|","|")
+    ).mkString("     |","|","|")
 
     val rows: IndexedSeq[IndexedSeq[Cell]] = for{
        i <- Range(0, d.length)
@@ -81,6 +81,6 @@ class Spreadsheet(implicit var m: Model = new Model) {
         j <- Range(0,d(i).length)
       } yield d(i)(j)
 
-    List[String](headers) :::  rows.map( _.map( v => "%-10s".format( v.printable())).mkString("|","|","|")).toList
+    List[String](headers) :::  rows.zipWithIndex.map( x   => x._1.map( v => "%-10s".format( v.printable())).mkString("%-5s|".format(x._2 +1)   ,"|","|")).toList
   }
 }
