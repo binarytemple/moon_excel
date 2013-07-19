@@ -1,3 +1,7 @@
+import AssemblyKeys._ // put this at the top of the file
+
+assemblySettings
+
 sbtVersion := "0.12.3"
 
 name := "moon_excel"

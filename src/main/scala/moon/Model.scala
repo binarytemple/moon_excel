@@ -14,37 +14,58 @@ object Model {
    * to be emptied, and to return both a string representation and a numerical representation. Write test code that tests
    * the behaviour of the cell class.
    */
-  case class Cell(value: String) {
+  case class Cell(val value: String) {
+    val OnlyNum = """^-?[0-9]*(\.?[0-9]+)$""".r
 
-    def numericalValue()(implicit m: Model): Double =
+    def isNumeric(s: String) = s match {
+      case OnlyNum(_) => true
+      case other => false
+    }
+
+    def numericalValue()(implicit m: Model): Double = {
       try {
         if (value.startsWith("=")) {
-          QueryTermParser.parse(value).evaluate(m)
+          QueryTermParser.parse(value).evaluate()
+        }
+        else if (isNumeric(value)) {
+          value.toDouble
         }
         else {
-          value.toDouble
+          0
         }
       } catch {
         case t: Throwable =>
           System.err.println(s"$this ${ t.getMessage}")
           0
       }
+    }
 
-    def printable()(implicit m: Model) = {
-      val value1: Double = numericalValue()
-      if (value1 == 0) {
-        ""
+    def printable()(implicit m: Model, settings: Settings): String = {
+      val ret = {
+        if (isNumeric(value) || value.startsWith("=")) {
+          val ret: Double = numericalValue()
+          if (ret == 0)
+            ""
+          else
+            ret.toString
+        }
+        else {
+          value
+        }
       }
-      else value1.toString
+      ret.substring(0, Math.min(settings.CellWidth, ret.length)).trim
     }
   }
+
 }
 
 class Model {
 
   import Model._
 
-  def generateDefault() = Range(0, 8).toArray.map(c => Range(0, 10).toArray.map(r => Cell("0")))
+  def generateDefault() = Range(0, 10).toArray.map(c => Range(0, 8).toArray.map(r => Cell("0")))
 
   val data: Array[Array[Cell]] = generateDefault()
+
+  def getRow(i: Int) = data(i)
 }

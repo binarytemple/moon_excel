@@ -6,10 +6,6 @@ import moon.Spreadsheet.CellRange
 
 object QueryTermParser {
 
-  case class Formula(op: Op.Value, cr: CellRange) {
-    def evaluate(m: Model) = ???
-  }
-
   object Op extends Enumeration {
 
     type Op = Value
@@ -30,6 +26,22 @@ object QueryTermParser {
     }
   }
 
+  case class Formula(op: Op.Value, cr: CellRange) {
+    def evaluate()(implicit m: Model) = {
+      val input = Spreadsheet.extractRange(cr)(m).map(_.numericalValue())
+      op match {
+        case Op.Sum => input.sum
+        case Op.Count => input.length.toDouble
+        case Op.Max => input.max
+        case Op.Min => input.min
+
+      }
+    }
+
+  }
+
+
+
   /**
    *
    * @param input for example {{{=SUM(A1:A3)}}}
@@ -40,16 +52,15 @@ object QueryTermParser {
       override val buildParseTree = true
     }
     val run = RecoveringParseRunner(qtp.FormulaExtractor, 1000l).run(input)
-//    println("RESULT:" + run.result)
-//    val parseTreePrintOut = org.parboiled.support.ParseTreeUtils.printNodeTree(run)
-//    println("TREE:" + parseTreePrintOut)
+    //    println("RESULT:" + run.result)
+    //    val parseTreePrintOut = org.parboiled.support.ParseTreeUtils.printNodeTree(run)
+    //    println("TREE:" + parseTreePrintOut)
     run.result.get
   }
 }
 
 class QueryTermParser extends Parser {
 
-  import Model._
 
   def Col: Rule1[Int] = rule {
     oneOrMore(anyOf(ColLetters.toArray))

@@ -1,21 +1,18 @@
 package moon
 
 object Viewer {
-  import Model._
 
 
+  def render(m: Model): String = {
 
-  def render(m:Model):String = {
-
-    val headers = m.data.zip(Range(0,m.data.length)).map(
+    val headers = m.data.zip(Range(0, m.data.length)).map(
       ci => (ci._2 + I2c).toChar.formatted("%-10s")
-    ).mkString("|","|","|\n")
+    ).mkString("|", "|", "|\n")
 
     val rows = m.data
 
     headers // + rows.mkString("|","|","|")
   }
-
 
 
 }

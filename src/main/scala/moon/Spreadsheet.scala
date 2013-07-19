@@ -8,8 +8,9 @@ object Spreadsheet {
   /**
    * Convert a CellId to an offset pair. The offsets are zero based.
    * @param id
+   * @return Offset
    */
-  def c2t(id: CellId): (Int, Int) = {
+  def c2t(id: CellId): RCOff = {
     id.toCharArray.toList match {
       case c :: r :: Nil => (c.toUpper - 65, r.toString.toInt - 1)
       case other => throw new Exception(s"Couldn't get offset from $id, it split to '$other'")
@@ -23,7 +24,23 @@ object Spreadsheet {
     }
   }
 
-  case class CellRange(start: (Int, Int), end: (Int, Int))
+  case class CellRange(start: RCOff, end: RCOff)
+
+  def extractRange(s: String)(implicit m: Model): List[Cell] = {
+    extractRange(s2cr(s))
+  }
+
+  def extractRange(c: CellRange)(implicit m: Model): List[Cell] = {
+    def colfilter(x: (Array[Model.Cell], Int)): Boolean = {
+      x._2 >= c.start._1 && x._2 <= c.end._1
+    }
+    def rowfilter(x: (Model.Cell, Int)): Boolean = {
+      x._2 >= c.start._2 && x._2 <= c.end._2
+    }
+    m.data.toList.zipWithIndex.filter {
+      colfilter
+    }.map(_._1).map(_.toList.zipWithIndex.filter(rowfilter).map(_._1)).flatten
+  }
 
 }
 
@@ -34,16 +51,20 @@ object Spreadsheet {
  * Write test code that tests the behaviour of the spreadsheet class.
  * @param m The Spreadsheet data model,
  */
-class Spreadsheet(implicit var m: Model = new Model) {
+class Spreadsheet(implicit var m: Model = new Model, settings:Settings = new Settings) {
 
   import Spreadsheet._
 
+  def assign(id: CellId, value: Any): Unit = {
+    assign(id, value.toString)
+  }
+
   /*The spreadsheet class will need methods that allow cells identified by their names (e.g. A1 or D4) to be assigned numerical values or emptied,
    as well as queried for the values they contain.*/
-  def assignValue(id: CellId, value: Double): Unit = {
+  def assign(id: CellId, value: String): Unit = {
     val offset = c2t(id)
     try {
-      this.m.data(offset._1).update(offset._2, Cell(value.toString))
+      this.m.data(offset._1).update(offset._2, Cell(value))
     }
     catch {
       case t: Throwable => System.err.println(t)
@@ -51,36 +72,32 @@ class Spreadsheet(implicit var m: Model = new Model) {
   }
 
   def extractRange(s: String): List[Cell] = {
-    extractRange(s2cr(s))
+    Spreadsheet.extractRange(s)
   }
 
   def extractRange(c: CellRange): List[Cell] = {
-    def colfilter(x: (Array[Model.Cell], Int)): Boolean = {
-      x._2 >= c.start._1 && x._2 <= c.end._1
-    }
-    def rowfilter(x: (Model.Cell, Int)): Boolean = {
-      x._2 >= c.start._2 && x._2 <= c.end._2
-    }
-    this.m.data.toList.zipWithIndex.filter {
-      colfilter
-    }.map(_._1).map(_.toList.zipWithIndex.filter(rowfilter).map(_._1)).flatten
+    Spreadsheet.extractRange(c)
   }
 
-  def print()  = {
+  def render() = {
+    def longest(ll: List[List[_ <: Any]]) = {
+      ll.map(_.length).max
+    }
+    val d = m.data.toList.map(_.toList.toArray.toList).toArray.toList
 
-    val d = m.data.toList.map(_.toList.toArray).toArray
+    val headers = d.zip(Range(0, longest(d))).map(
+      ci => (ci._2 + I2c).toChar.formatted(settings.FormatString)
+    ).mkString("     |", "|", "|")
 
-    val headers = m.data.zip(Range(0,d.length)).map(
-      ci => (ci._2 + I2c).toChar.formatted("%-10s")
-    ).mkString("     |","|","|")
-
-    val rows: IndexedSeq[IndexedSeq[Cell]] = for{
-       i <- Range(0, d.length)
+    val rows: IndexedSeq[IndexedSeq[Cell]] = for {
+      i <- Range(0, d(0).length)
     } yield
       for {
-        j <- Range(0,d(i).length)
-      } yield d(i)(j)
+        j <- Range(0, d(0).length)
+      } yield d(j)(i)
 
-    List[String](headers) :::  rows.zipWithIndex.map( x   => x._1.map( v => "%-10s".format( v.printable())).mkString("%-5s|".format(x._2 +1)   ,"|","|")).toList
+    List[String](headers) ::: rows.zipWithIndex.map{x => x._1.map(
+      v => settings.FormatString.format(v.printable())).mkString("%-5s|".format(x._2 + 1), "|", "|")
+  }.toList
   }
 }
