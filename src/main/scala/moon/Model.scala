@@ -30,13 +30,14 @@ object Model {
           0
       }
 
-    override def toString() = {
-      value
+    def printable()(implicit m: Model) = {
+      val value1: Double = numericalValue()
+      if (value1 == 0) {
+        ""
+      }
+      else value1.toString
     }
-
   }
-
-
 }
 
 class Model {

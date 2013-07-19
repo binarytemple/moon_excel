@@ -24,6 +24,7 @@ class SpreadsheetTest extends Specification with Mockito {
     s.m.data(1)(1).numericalValue() must_== 4
   }
 
+
   "test the spreadsheet helpers" in {
     Spreadsheet.c2t("A1") must_==(0, 0)
     Spreadsheet.c2t("B5") must_==(1, 4)
@@ -63,7 +64,9 @@ class SpreadsheetTest extends Specification with Mockito {
   }
 
   "print the spreadsheet" in new ComplexScope {
-    s.print(0) must_== "|A         |B         |C         |D         |E         |F         |G         |H         |"
+    s.print()(0) must_== "|A         |B         |C         |D         |E         |F         |G         |H         |"
+    s.print()(1) must_== "|1.0       |2.0       |          |          |          |          |          |          |          |          |"
+    s.print()(2) must_== "|3.0       |4.0       |          |          |          |          |          |          |          |          |"
   }
 
 

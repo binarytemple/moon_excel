@@ -1,6 +1,7 @@
 package moon
 
 import moon.Model.Cell
+import scala.collection.immutable.IndexedSeq
 
 object Spreadsheet {
 
@@ -33,7 +34,7 @@ object Spreadsheet {
  * Write test code that tests the behaviour of the spreadsheet class.
  * @param m The Spreadsheet data model,
  */
-class Spreadsheet(var m: Model = new Model) {
+class Spreadsheet(implicit var m: Model = new Model) {
 
   import Spreadsheet._
 
@@ -65,16 +66,21 @@ class Spreadsheet(var m: Model = new Model) {
     }.map(_._1).map(_.toList.zipWithIndex.filter(rowfilter).map(_._1)).flatten
   }
 
-  def print  = {
-    val headers = m.data.zip(Range(0,m.data.length)).map(
+  def print()  = {
+
+    val d = m.data.toList.map(_.toList.toArray).toArray
+
+    val headers = m.data.zip(Range(0,d.length)).map(
       ci => (ci._2 + I2c).toChar.formatted("%-10s")
     ).mkString("|","|","|")
 
-    val rows = m.data
+    val rows: IndexedSeq[IndexedSeq[Cell]] = for{
+       i <- Range(0, d.length)
+    } yield
+      for {
+        j <- Range(0,d(i).length)
+      } yield d(i)(j)
 
-    List(headers) // + rows.mkString("|","|","|")
-
+    List[String](headers) :::  rows.map( _.map( v => "%-10s".format( v.printable())).mkString("|","|","|")).toList
   }
-
-
 }
