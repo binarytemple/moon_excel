@@ -15,16 +15,15 @@ object Spreadsheet {
     }
   }
 
-  def s2cr(s:String):CellRange = {
+  def s2cr(s: String): CellRange = {
     s.split(':').toList match {
-      case start :: end :: Nil => CellRange(c2t(start),c2t(end))
+      case start :: end :: Nil => CellRange(c2t(start), c2t(end))
       case other => throw new Exception(s"Couldn't extract range from $s, it split to '$other'")
     }
-
   }
 
-
   case class CellRange(start: (Int, Int), end: (Int, Int))
+
 }
 
 /**
@@ -50,23 +49,30 @@ class Spreadsheet(var m: Model = new Model) {
     }
   }
 
-
-  def extractRange(s:String): List[Cell] = {
+  def extractRange(s: String): List[Cell] = {
     extractRange(s2cr(s))
   }
 
-  def extractRange(c:CellRange): List[Cell] = {
-
+  def extractRange(c: CellRange): List[Cell] = {
     def colfilter(x: (Array[Model.Cell], Int)): Boolean = {
       x._2 >= c.start._1 && x._2 <= c.end._1
     }
-
     def rowfilter(x: (Model.Cell, Int)): Boolean = {
       x._2 >= c.start._2 && x._2 <= c.end._2
     }
     this.m.data.toList.zipWithIndex.filter {
       colfilter
     }.map(_._1).map(_.toList.zipWithIndex.filter(rowfilter).map(_._1)).flatten
+  }
+
+  def print  = {
+    val headers = m.data.zip(Range(0,m.data.length)).map(
+      ci => (ci._2 + I2c).toChar.formatted("%-10s")
+    ).mkString("|","|","|")
+
+    val rows = m.data
+
+    List(headers) // + rows.mkString("|","|","|")
 
   }
 
