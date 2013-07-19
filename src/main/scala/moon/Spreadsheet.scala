@@ -7,8 +7,6 @@ object Spreadsheet {
 
   /**
    * Convert a CellId to an offset pair. The offsets are zero based.
-   * @param id
-   * @return Offset
    */
   def c2t(id: CellId): RCOff = {
     id.toCharArray.toList match {
@@ -79,7 +77,7 @@ class Spreadsheet(implicit var m: Model = new Model, settings:Settings = new Set
     Spreadsheet.extractRange(c)
   }
 
-  def render() = {
+  def render  = {
     def longest(ll: List[List[_ <: Any]]) = {
       ll.map(_.length).max
     }

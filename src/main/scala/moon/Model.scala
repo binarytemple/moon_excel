@@ -14,7 +14,7 @@ object Model {
    * to be emptied, and to return both a string representation and a numerical representation. Write test code that tests
    * the behaviour of the cell class.
    */
-  case class Cell(val value: String) {
+  case class Cell(value: String) {
     val OnlyNum = """^-?[0-9]*(\.?[0-9]+)$""".r
 
     def isNumeric(s: String) = s match {

@@ -65,8 +65,8 @@ class SpreadsheetTest extends Specification with Mockito {
     s.assign("A2", 2)
     s.assign("B1", 3)
     s.assign("B2", 4)
-    s.render()(0) must_== "     |A         |B         |C         |D         |E         |F         |G         |H         |"
-    s.render()(1) must_== "1    |1.0       |3.0       |          |          |          |          |          |          |"
-    s.render()(2) must_== "2    |2.0       |4.0       |          |          |          |          |          |          |"
+    s.render(0) must_== "     |A         |B         |C         |D         |E         |F         |G         |H         |"
+    s.render(1) must_== "1    |1.0       |3.0       |          |          |          |          |          |          |"
+    s.render(2) must_== "2    |2.0       |4.0       |          |          |          |          |          |          |"
   }
 }
