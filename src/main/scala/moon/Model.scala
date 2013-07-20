@@ -25,7 +25,11 @@ object Model {
     def numericalValue()(implicit m: Model): Double = {
       try {
         if (value.startsWith("=")) {
-          QueryTermParser.parse(value).evaluate()
+
+          QueryTermParser.parse(value) match {
+            case Right(f) => f.evaluate()
+            case Left(fail) => throw new RuntimeException(fail.toString)
+          }
         }
         else if (isNumeric(value)) {
           value.toDouble

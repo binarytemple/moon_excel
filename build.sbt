@@ -26,6 +26,8 @@ libraryDependencies += "org.specs2" %% "specs2" % "1.13" % "test"
 
 libraryDependencies += "org.mockito" % "mockito-all" % "1.9.0" % "test"
 
+libraryDependencies += "jline" % "jline" % "2.10"
+
 EclipseKeys.withSource := true
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings

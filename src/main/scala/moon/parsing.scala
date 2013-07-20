@@ -1,15 +1,31 @@
 package moon
 
 import org.parboiled.scala._
-import moon.QueryTermParser.{Formula, Op}
 import moon.Spreadsheet.CellRange
+import org.parboiled.scala.RecoveringParseRunner
+import org.parboiled.errors.InvalidInputError
+import org.parboiled.buffers.InputBuffer
+import org.parboiled.support.MatcherPath
+import org.parboiled.matchers.{FirstOfStringsMatcher, StringMatcher, CharMatcher}
 
 object QueryTermParser {
 
+  lazy val qtp = new QueryTermParser {
+    override val buildParseTree = true
+  }
+
+  /**
+   * If parsing fails, this class will reveal where, and how.
+   * @param start
+   * @param end
+   * @param buffer
+   * @param delta
+   * @param options
+   */
+  case class FormulaParseFail(start: Int, end: Int, buffer: InputBuffer, delta: Int, options: List[String])
+
   object Op extends Enumeration {
-
     type Op = Value
-
     val Sum = Value("SUM")
     val Count = Value("COUNT")
     val Max = Value("MAX")
@@ -34,33 +50,53 @@ object QueryTermParser {
         case Op.Count => input.length.toDouble
         case Op.Max => input.max
         case Op.Min => input.min
-
       }
     }
-
   }
-
-
 
   /**
    *
    * @param input for example {{{=SUM(A1:A3)}}}
    * @return
    */
-  def parse(input: String): Formula = {
-    val qtp = new QueryTermParser {
-      override val buildParseTree = true
+  def parse(input: String): Either[FormulaParseFail, Formula] = {
+    val QuoteStripper = """^'([^']*)'$""".r
+
+    val runner = RecoveringParseRunner(qtp.FormulaExtractor, 1000l)
+    try {
+      Right(runner.run(input).result.get)
     }
-    val run = RecoveringParseRunner(qtp.FormulaExtractor, 1000l).run(input)
+    catch {
+      case t: Throwable =>
+        import scala.collection.JavaConversions._
+
+          //On invalid input we try to resolve the logest posible sucessive token
+          val collect = runner.inner.getParseErrors.toList.collectFirst {
+
+          case i: InvalidInputError =>
+            val fails = i.getFailedMatchers.toList.map{
+              mp:MatcherPath =>
+                mp.element.matcher match {
+                  case cm:CharMatcher => mp.parent.element.matcher match {
+                    case fsm:FirstOfStringsMatcher => fsm.strings.toList.map(new String(_))
+                    case sm:StringMatcher => List (new String(sm.characters))
+                    case _ => List(cm.character.toString)
+                  }
+                }
+            }.flatten
+            FormulaParseFail(i.getStartIndex, i.getEndIndex, i.getInputBuffer, i.getIndexDelta,fails)
+          }
+        Left(collect.get)
+    }
     //    println("RESULT:" + run.result)
     //    val parseTreePrintOut = org.parboiled.support.ParseTreeUtils.printNodeTree(run)
     //    println("TREE:" + parseTreePrintOut)
-    run.result.get
   }
 }
 
 class QueryTermParser extends Parser {
 
+  import QueryTermParser.{Op, Formula}
 
   def Col: Rule1[Int] = rule {
     oneOrMore(anyOf(ColLetters.toArray))
@@ -71,7 +107,12 @@ class QueryTermParser extends Parser {
   } ~> (_.toInt)
 
   def Operation: Rule1[Op.Value] = rule {
-    oneOrMore(anyOf(Range('A', 'Z').map(_.toChar).toArray))
+    //The list of operation matches.. we extract from the Op enumeration
+    val ops = Op.values.toList
+    var ret = str(ops.head.toString)
+    ops.tail.foreach(v => ret = ret | str(v.toString))
+    ret
+
   } ~> Op.fromString
 
   def Term: Rule2[Int, Int] = rule {

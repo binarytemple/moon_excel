@@ -1,3 +1,4 @@
+
 import moon.Spreadsheet
 
 object Main {
@@ -23,8 +24,12 @@ object Main {
         println(c)
         s.assign(c._1, c._2)
     }
-
-
     s.render.foreach(println)
+    //val j = Jline
+
+
+
+
   }
+
 }
