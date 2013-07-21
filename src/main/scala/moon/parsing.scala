@@ -6,7 +6,11 @@ import org.parboiled.scala.RecoveringParseRunner
 import org.parboiled.errors.InvalidInputError
 import org.parboiled.buffers.InputBuffer
 import org.parboiled.support.MatcherPath
-import org.parboiled.matchers.{FirstOfStringsMatcher, StringMatcher, CharMatcher}
+import org.parboiled.matchers._
+import moon.QueryTermParser.{Command, GetCommand, SetCommand, PrintCommand}
+import moon.QueryTermParser.SetCommand
+import moon.QueryTermParser.GetCommand
+import moon.Spreadsheet.CellRange
 
 object QueryTermParser {
 
@@ -22,7 +26,15 @@ object QueryTermParser {
    * @param delta
    * @param options
    */
-  case class FormulaParseFail(start: Int, end: Int, buffer: InputBuffer, delta: Int, options: List[String])
+  case class CommandParseFailure(start: Int, end: Int, buffer: InputBuffer, delta: Int, options: List[String])
+
+  sealed trait Command
+
+  class PrintCommand extends Command
+
+  case class SetCommand(id: (Int, Int), value: Either[String, Formula]) extends Command
+
+  case class GetCommand(id: (Int, Int)) extends Command
 
   object Op extends Enumeration {
     type Op = Value
@@ -54,15 +66,25 @@ object QueryTermParser {
     }
   }
 
+
+  def parseFormula(input: String): Either[Throwable, Formula] = {
+    try {
+      val runner = RecoveringParseRunner(qtp.FormulaExtractor, 1000l)
+      Right(runner.run(input).result.get)
+    }
+    catch {
+      case t: Throwable => Left(t)
+    }
+  }
+
   /**
    *
    * @param input for example {{{=SUM(A1:A3)}}}
    * @return
    */
-  def parse(input: String): Either[FormulaParseFail, Formula] = {
-    val QuoteStripper = """^'([^']*)'$""".r
+  def parseCommand(input: String): Either[CommandParseFailure, Command] = {
 
-    val runner = RecoveringParseRunner(qtp.FormulaExtractor, 1000l)
+    val runner = RecoveringParseRunner(qtp.CmdExtractor, 1000l)
     try {
       Right(runner.run(input).result.get)
     }
@@ -70,22 +92,34 @@ object QueryTermParser {
       case t: Throwable =>
         import scala.collection.JavaConversions._
 
-          //On invalid input we try to resolve the logest posible sucessive token
-          val collect = runner.inner.getParseErrors.toList.collectFirst {
-
+        //On invalid input we try to resolve the logest posible sucessive token
+        val collect = runner.inner.getParseErrors.toList.collectFirst {
           case i: InvalidInputError =>
-            val fails = i.getFailedMatchers.toList.map{
-              mp:MatcherPath =>
+            val fails = i.getFailedMatchers.toList.map {
+              mp: MatcherPath =>
                 mp.element.matcher match {
-                  case cm:CharMatcher => mp.parent.element.matcher match {
-                    case fsm:FirstOfStringsMatcher => fsm.strings.toList.map(new String(_))
-                    case sm:StringMatcher => List (new String(sm.characters))
+
+                  case crm:CharRangeMatcher => Range(crm.cLow,crm.cHigh).toList.map(_.toChar).map(_.toString)
+
+                  case cm: CharMatcher => mp.parent.element.matcher match {
+                    case fsm: FirstOfStringsMatcher => fsm.strings.toList.map(new String(_))
+
+                    case sm: StringMatcher => List(new String(sm.characters))
                     case _ => List(cm.character.toString)
                   }
+                  case any: AnyOfMatcher =>
+                    if (any.characters != null) {
+                      any.characters.getChars.toList.map(_.toString)
+                    }
+                    else {
+                      List.empty[String]
+                    }
+
+                  case other => List()
                 }
             }.flatten
-            FormulaParseFail(i.getStartIndex, i.getEndIndex, i.getInputBuffer, i.getIndexDelta,fails)
-          }
+            CommandParseFailure(i.getStartIndex, i.getEndIndex, i.getInputBuffer, i.getIndexDelta, fails)
+        }
         Left(collect.get)
     }
     //    println("RESULT:" + run.result)
@@ -99,11 +133,15 @@ class QueryTermParser extends Parser {
   import QueryTermParser.{Op, Formula}
 
   def Col: Rule1[Int] = rule {
-    oneOrMore(anyOf(ColLetters.toArray))
+    /*oneOrMore(*/anyOf(ColLetters.toArray)/*)*/
+    "A" - "H"
+
   } ~> (x => x.head - 65)
 
   def Num: Rule1[Int] = rule {
-    oneOrMore(anyOf(Range('0', '9').map(_.toChar).toArray))
+//    nTimes(1,anyOf(Range('0', '9').map(_.toChar).toArray))
+//    /*oneOrMore(anyOf(Range('0', '9').map(_.toChar).toArray))*/
+    "0" - "9"
   } ~> (_.toInt)
 
   def Operation: Rule1[Op.Value] = rule {
@@ -112,7 +150,6 @@ class QueryTermParser extends Parser {
     var ret = str(ops.head.toString)
     ops.tail.foreach(v => ret = ret | str(v.toString))
     ret
-
   } ~> Op.fromString
 
   def Term: Rule2[Int, Int] = rule {
@@ -124,7 +161,31 @@ class QueryTermParser extends Parser {
   }
 
   def FormulaExtractor = rule {
-    "=" ~ Operation ~ "(" ~ Pair ~ ")" ~ EOI
+    "=" ~ Operation ~ "(" ~ Pair ~ ")"
   } ~~> ((a: Op.Value, b: Int, c: Int, d: Int, e: Int) => Formula(a, CellRange((b, c - 1), (d, e - 1))))
+
+  def AnythingToEnd: Rule1[String] = rule {
+      oneOrMore(noneOf(Array('\n')))
+  } ~> identity
+
+  def SetCmd = rule {
+    "SET" ~ " " ~ Term ~ " " ~ ( FormulaExtractor   |(!"=" ~ AnythingToEnd) ) ~ EOI
+  } ~~> ((b: Int, c: Int, s: Any) => s match {
+    case f: Formula => SetCommand((b, c), Right(f))
+    case s: String => SetCommand((b, c), Left(s))
+    case other => throw new UnsupportedOperationException(other.toString)
+  })
+
+  def GetCmd: Rule1[GetCommand] = rule {
+    "GET" ~ " " ~ Term ~ EOI
+  } ~~> ((b: Int, c: Int) => GetCommand((b, c)))
+
+  def PrintCmd: Rule1[PrintCommand] = rule {
+    str("PRINT") ~ push(new PrintCommand) ~ EOI
+  }
+
+  def CmdExtractor: Rule1[Command] = rule {
+    SetCmd | GetCmd | PrintCmd
+  }
 
 }

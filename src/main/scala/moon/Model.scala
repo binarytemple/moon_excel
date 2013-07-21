@@ -26,7 +26,7 @@ object Model {
       try {
         if (value.startsWith("=")) {
 
-          QueryTermParser.parse(value) match {
+          QueryTermParser.parseFormula(value) match {
             case Right(f) => f.evaluate()
             case Left(fail) => throw new RuntimeException(fail.toString)
           }
