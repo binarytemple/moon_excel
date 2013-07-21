@@ -1,5 +1,4 @@
-package moon
-
+package spreadsheet
 
 /**
  * Model of a spreadsheet containing 8 columns and ten rows.

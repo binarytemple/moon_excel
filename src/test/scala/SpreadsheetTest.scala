@@ -1,8 +1,8 @@
-import moon.Spreadsheet.CellRange
-import moon.{Model, Spreadsheet}
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import spreadsheet._
+import Spreadsheet.CellRange
 
 class SpreadsheetTest extends Specification with Mockito {
 

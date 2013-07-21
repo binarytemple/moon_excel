@@ -5,7 +5,6 @@ import java.util
 import jline.console.completer.{Completer, StringsCompleter, FileNameCompleter}
 import jline.console.ConsoleReader
 import jline.{Terminal, TerminalFactory}
-import moon.Spreadsheet
 import scala.Predef.String
 
 

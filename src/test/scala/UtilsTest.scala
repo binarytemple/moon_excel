@@ -1,5 +1,4 @@
-package moon
-
+import spreadsheet.Utils
 import org.specs2.mutable.Specification
 
 class UtilsTest extends Specification {

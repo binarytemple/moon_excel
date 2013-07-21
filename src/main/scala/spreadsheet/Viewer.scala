@@ -1,4 +1,6 @@
-package moon
+package spreadsheet
+
+import spreadsheet.Model
 
 object Viewer {
 

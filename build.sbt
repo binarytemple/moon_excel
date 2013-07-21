@@ -4,7 +4,7 @@ assemblySettings
 
 sbtVersion := "0.12.3"
 
-name := "moon_excel"
+name := "scala_excel"
 
 organization := "binarytemple"
 

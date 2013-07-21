@@ -1,7 +1,9 @@
-package moon
+package spreadsheet
 
-import moon.Model.Cell
+
 import scala.collection.immutable.IndexedSeq
+import spreadsheet.{Settings, Model}
+import spreadsheet.Model.Cell
 
 object Spreadsheet {
 

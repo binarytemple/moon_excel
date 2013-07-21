@@ -1,4 +1,4 @@
-package object moon {
+package object spreadsheet {
 
   val Cols = 8
   val ColLetters = Range(65, 65 + Cols).map(_.toChar)

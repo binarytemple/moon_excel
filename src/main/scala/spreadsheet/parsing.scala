@@ -1,16 +1,13 @@
-package moon
+package spreadsheet
 
 import org.parboiled.scala._
-import moon.Spreadsheet.CellRange
 import org.parboiled.scala.RecoveringParseRunner
 import org.parboiled.errors.InvalidInputError
 import org.parboiled.buffers.InputBuffer
 import org.parboiled.support.MatcherPath
 import org.parboiled.matchers._
-import moon.QueryTermParser.{Command, GetCommand, SetCommand, PrintCommand}
-import moon.QueryTermParser.SetCommand
-import moon.QueryTermParser.GetCommand
-import moon.Spreadsheet.CellRange
+import spreadsheet.Spreadsheet.CellRange
+
 
 object QueryTermParser {
 
@@ -84,7 +81,7 @@ object QueryTermParser {
    */
   def parseCommand(input: String): Either[CommandParseFailure, Command] = {
 
-    val runner = RecoveringParseRunner(qtp.CmdExtractor, 1000l)
+    val runner = ReportingParseRunner(qtp.CmdExtractor)
     try {
       Right(runner.run(input).result.get)
     }
@@ -99,7 +96,7 @@ object QueryTermParser {
               mp: MatcherPath =>
                 mp.element.matcher match {
 
-                  case crm:CharRangeMatcher => Range(crm.cLow,crm.cHigh).toList.map(_.toChar).map(_.toString)
+                  case crm: CharRangeMatcher => Range(crm.cLow, crm.cHigh).toList.map(_.toChar).map(_.toString)
 
                   case cm: CharMatcher => mp.parent.element.matcher match {
                     case fsm: FirstOfStringsMatcher => fsm.strings.toList.map(new String(_))
@@ -130,18 +127,18 @@ object QueryTermParser {
 
 class QueryTermParser extends Parser {
 
-  import QueryTermParser.{Op, Formula}
+  import QueryTermParser._
 
   def Col: Rule1[Int] = rule {
-    /*oneOrMore(*/anyOf(ColLetters.toArray)/*)*/
+    /*oneOrMore(*/ anyOf(ColLetters.toArray) /*)*/
     "A" - "H"
 
   } ~> (x => x.head - 65)
 
   def Num: Rule1[Int] = rule {
-//    nTimes(1,anyOf(Range('0', '9').map(_.toChar).toArray))
-//    /*oneOrMore(anyOf(Range('0', '9').map(_.toChar).toArray))*/
-    "0" - "9"
+    //    nTimes(1,anyOf(Range('0', '9').map(_.toChar).toArray))
+    //    /*oneOrMore(anyOf(Range('0', '9').map(_.toChar).toArray))*/
+    "1" - "9"
   } ~> (_.toInt)
 
   def Operation: Rule1[Op.Value] = rule {
@@ -165,11 +162,11 @@ class QueryTermParser extends Parser {
   } ~~> ((a: Op.Value, b: Int, c: Int, d: Int, e: Int) => Formula(a, CellRange((b, c - 1), (d, e - 1))))
 
   def AnythingToEnd: Rule1[String] = rule {
-      oneOrMore(noneOf(Array('\n')))
+    oneOrMore(noneOf(Array('\n')))
   } ~> identity
 
   def SetCmd = rule {
-    "SET" ~ " " ~ Term ~ " " ~ ( FormulaExtractor   |(!"=" ~ AnythingToEnd) ) ~ EOI
+    "SET" ~ " " ~ Term ~ " " ~ (FormulaExtractor | (!"=" ~ AnythingToEnd)) ~ EOI
   } ~~> ((b: Int, c: Int, s: Any) => s match {
     case f: Formula => SetCommand((b, c), Right(f))
     case s: String => SetCommand((b, c), Left(s))
@@ -181,8 +178,8 @@ class QueryTermParser extends Parser {
   } ~~> ((b: Int, c: Int) => GetCommand((b, c)))
 
   def PrintCmd: Rule1[PrintCommand] = rule {
-    str("PRINT") ~ push(new PrintCommand) ~ EOI
-  }
+    str("PRINT")
+  } ~> ((s: String) => new PrintCommand)
 
   def CmdExtractor: Rule1[Command] = rule {
     SetCmd | GetCmd | PrintCmd

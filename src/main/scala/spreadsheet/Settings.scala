@@ -1,4 +1,4 @@
-package moon
+package spreadsheet
 
 class Settings {
 

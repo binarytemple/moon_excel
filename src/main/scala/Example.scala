@@ -4,7 +4,7 @@ import java.nio.file._
 import java.util
 import jline.console.completer.Completer
 import jline.console.ConsoleReader
-import moon.{Utils, QueryTermParser}
+import spreadsheet.{Utils, QueryTermParser}
 
 object Example {
 

@@ -1,5 +1,4 @@
-
-import moon.Spreadsheet
+import spreadsheet.Spreadsheet
 
 object Main {
   def main(args: Array[String]) {

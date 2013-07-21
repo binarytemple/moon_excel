@@ -1,6 +1,6 @@
-import moon.QueryTermParser
-import moon.QueryTermParser.{Formula, Op}
-import moon.Spreadsheet.CellRange
+import spreadsheet.{Spreadsheet, QueryTermParser}
+import QueryTermParser.{Formula, Op}
+import Spreadsheet.CellRange
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 

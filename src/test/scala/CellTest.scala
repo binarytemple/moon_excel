@@ -1,8 +1,9 @@
-import moon.{Settings, Spreadsheet, Model}
-import moon.Model.Cell
+
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
+import spreadsheet.Model.Cell
+import spreadsheet.{Spreadsheet, Settings, Model}
 
 class CellTest extends Specification with Mockito {
 
