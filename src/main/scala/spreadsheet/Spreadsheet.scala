@@ -2,8 +2,9 @@ package spreadsheet
 
 
 import scala.collection.immutable.IndexedSeq
-import spreadsheet.{Settings, Model}
+
 import spreadsheet.Model.Cell
+import spreadsheet.QueryTermParser.Formula
 
 object Spreadsheet {
 
@@ -17,6 +18,11 @@ object Spreadsheet {
     }
   }
 
+  /**
+   * Convert a String to a CellRange
+   * @param s
+   * @return
+   */
   def s2cr(s: String): CellRange = {
     s.split(':').toList match {
       case start :: end :: Nil => CellRange(c2t(start), c2t(end))
@@ -24,7 +30,21 @@ object Spreadsheet {
     }
   }
 
-  case class CellRange(start: RCOff, end: RCOff)
+  /**
+   * Convert an Offset pair to a CellId
+   * @param o
+   * @return
+   */
+  def o2s(o:RCOff):CellId = {
+    s"${65 + o._1}${o._2 + 1}} "
+  }
+
+  case class CellRange(start: RCOff, end: RCOff)  {
+
+    override def toString = {
+      s"${o2s(start)}:${o2s(end)}"
+    }
+  }
 
   def extractRange(s: String)(implicit m: Model): List[Cell] = {
     extractRange(s2cr(s))
@@ -55,13 +75,47 @@ class Spreadsheet(implicit var m: Model = new Model, settings:Settings = new Set
 
   import Spreadsheet._
 
-  def assign(id: CellId, value: Any): Unit = {
-    assign(id, value.toString)
+//  def assign(id: CellId, value: Any): Unit = {
+//    assign(id, value.toString)
+//  }
+
+  def get(id:RCOff):String = {
+    this.m.data(id._1)(id._2).displayable()
+  }
+
+  def get(id:CellId):String = {
+    val offset = c2t(id)
+    this.m.data(offset._1)(offset._2).displayable()
+  }
+
+  def assign(id: RCOff, value: Number): Unit = {
+    assign(id,Left(value.toString))
+  }
+
+  def assign(id: RCOff, value: String): Unit = {
+    assign(id,Left(value))
+  }
+
+  def assign(id: CellId, value: Number): Unit = {
+    assign(id,Left(value.toString))
+  }
+
+  def assign(id: CellId, value: String): Unit = {
+    assign(id,Left(value))
+  }
+
+  def assign(id: RCOff, value: Either[String, Formula]): Unit = {
+    try {
+      this.m.data(id._1).update(id._2, Cell(value))
+    }
+    catch {
+      case t: Throwable => System.err.println(t)
+    }
   }
 
   /*The spreadsheet class will need methods that allow cells identified by their names (e.g. A1 or D4) to be assigned numerical values or emptied,
    as well as queried for the values they contain.*/
-  def assign(id: CellId, value: String): Unit = {
+  def assign(id: CellId, value: Either[String, Formula]): Unit = {
     val offset = c2t(id)
     try {
       this.m.data(offset._1).update(offset._2, Cell(value))

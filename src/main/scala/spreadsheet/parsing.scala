@@ -27,7 +27,7 @@ object QueryTermParser {
 
   sealed trait Command
 
-  class PrintCommand extends Command
+  case object PrintCommand extends Command
 
   case class SetCommand(id: (Int, Int), value: Either[String, Formula]) extends Command
 
@@ -61,6 +61,9 @@ object QueryTermParser {
         case Op.Min => input.min
       }
     }
+    override  def toString = {
+      s"${op}=(${cr.toString})"
+    }
   }
 
 
@@ -92,7 +95,7 @@ object QueryTermParser {
         //On invalid input we try to resolve the logest posible sucessive token
         val collect = runner.inner.getParseErrors.toList.collectFirst {
           case i: InvalidInputError =>
-            val fails = i.getFailedMatchers.toList.map {
+            val options = i.getFailedMatchers.toList.map {
               mp: MatcherPath =>
                 mp.element.matcher match {
 
@@ -115,7 +118,7 @@ object QueryTermParser {
                   case other => List()
                 }
             }.flatten
-            CommandParseFailure(i.getStartIndex, i.getEndIndex, i.getInputBuffer, i.getIndexDelta, fails)
+            CommandParseFailure(i.getStartIndex, i.getEndIndex, i.getInputBuffer, i.getIndexDelta, options.map(o => Utils.stripOverlapFromToken(input, o) ))
         }
         Left(collect.get)
     }
@@ -177,9 +180,9 @@ class QueryTermParser extends Parser {
     "GET" ~ " " ~ Term ~ EOI
   } ~~> ((b: Int, c: Int) => GetCommand((b, c)))
 
-  def PrintCmd: Rule1[PrintCommand] = rule {
+  def PrintCmd: Rule1[PrintCommand.type] = rule {
     str("PRINT")
-  } ~> ((s: String) => new PrintCommand)
+  } ~> ((s: String) =>  PrintCommand)
 
   def CmdExtractor: Rule1[Command] = rule {
     SetCmd | GetCmd | PrintCmd

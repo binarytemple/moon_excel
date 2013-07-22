@@ -3,7 +3,8 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 import spreadsheet.Model.Cell
-import spreadsheet.{Spreadsheet, Settings, Model}
+import spreadsheet.QueryTermParser.Formula
+import spreadsheet.{QueryTermParser, Spreadsheet, Settings, Model}
 
 class CellTest extends Specification with Mockito {
 
@@ -12,10 +13,10 @@ class CellTest extends Specification with Mockito {
     implicit val m = new Model {
       override def generateDefault(): Array[Array[Cell]] = Array(
         Array(
-          Cell("50"), Cell("5")
+          Cell(Left("50")), Cell(Left("5"))
         ),
         Array(
-          Cell("9"), Cell("8")
+          Cell(Left("9")),  Cell(Left("8"))
         )
       )
     }
@@ -23,19 +24,40 @@ class CellTest extends Specification with Mockito {
 
   "An individual cell" should {
     "accept values, converting them to numbers" in new CellScope {
-      val c = Cell("1.4")
-      c.value must_== "1.4"
+      val c = Cell(Left("1.4"))
+      c.value must_== Left("1.4")
       c.numericalValue() must_== 1.4
     }
 
     "Evaluate functions" in new CellScope {
       //A quick sanity check
       Spreadsheet.extractRange("A1:B2").map(_.numericalValue) must containAllOf(Seq(50, 5, 9, 8))
-      Cell("=MIN(A1:B2)").numericalValue() must_== 5
-      Cell("=MIN(A1:B2)").printable() must_== "5.0"
-      Cell("=MAX(A1:B2)").numericalValue() must_== 50
-      Cell("=COUNT(A1:B2)").numericalValue() must_== 4
-      Cell("=SUM(A1:B2)").numericalValue() must_== 72
+
+      QueryTermParser.parseFormula("=MIN(A1:B2)") must beRight.like  {
+        case f:Formula => Cell(Right(f)).numericalValue() must_== 5
+      }
+
+      QueryTermParser.parseFormula("=MIN(A1:B2)") must beRight.like  {
+        case f:Formula =>
+          Cell(Right(f)).numericalValue() must_== 5
+          Cell(Right(f)).printable() must_== "5.0"
+      }
+
+      QueryTermParser.parseFormula("=MAX(A1:B2)") must beRight.like  {
+        case f:Formula =>
+          Cell(Right(f)).numericalValue() must_== 50
+          Cell(Right(f)).printable() must_== "50.0"
+      }
+
+      QueryTermParser.parseFormula("=COUNT(A1:B2)") must beRight.like  {
+        case f:Formula =>
+          Cell(Right(f)).numericalValue() must_== 4
+
+      }
+      QueryTermParser.parseFormula("=SUM(A1:B2)") must beRight.like  {
+        case f:Formula =>
+          Cell(Right(f)).numericalValue() must_== 72
+      }
     }
   }
 }

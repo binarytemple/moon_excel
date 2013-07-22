@@ -25,7 +25,7 @@ object TerminalMain {
     cmds.foreach {
       c =>
         println(c)
-        s.assign(c._1, c._2)
+        s.assign(c._1, Left(c._2))
     }
     s.render.foreach(println)
 
